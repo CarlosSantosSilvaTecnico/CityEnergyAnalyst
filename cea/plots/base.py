@@ -1,11 +1,9 @@
-from __future__ import division
-from __future__ import print_function
-
 """
-Implements base classes to derive plot classes from. The code in py:mod:`cea.plots.categories` uses 
+Implements base classes to derive plot classes from. The code in py:mod:`cea.plots.categories` uses
 py:class:`cea.plots.base.PlotBase` to figure out the list of plots in a category.
 """
-
+from __future__ import division
+from __future__ import print_function
 import os
 import plotly.graph_objs
 import plotly.offline
@@ -35,7 +33,8 @@ class PlotBase(object):
     def id(cls):
         return cls.name.lower().replace(' ', '-')  # use for js/html etc.
 
-    def __init__(self, project, parameters):
+    def __init__(self, project, parameters, cache):
+        self.cache = cache  # a PlotCache implementation for reading cached data
         self.project = project  # full path to the project this plot belongs to
         self.category_path = None  # override this in the __init__.py subclasses for each category (see cea/plots/demand/__init__.py for an example)
         self.data = None  # override this in the plot subclasses! set it to the pandas DataFrame to use as data
@@ -92,12 +91,17 @@ class PlotBase(object):
 
     def plot(self, auto_open=False):
         """Plots the graphs to the filename (see output_path)"""
-        fig = plotly.graph_objs.Figure(data=self.calc_graph(), layout=self.layout)
+        graph = self.calc_graph()
+        layout = self.layout
+        fig = plotly.graph_objs.Figure(data=graph, layout=layout)
         plotly.offline.plot(fig, auto_open=auto_open, filename=self.output_path)
         print("Plotted %s to %s" % (self.name, self.output_path))
 
     def plot_div(self):
         """Return the plot as an html <div/> for use in the dashboard. Override this method in subclasses"""
+        return self.cache.lookup_plot_div(self, self._plot_div_producer)
+
+    def _plot_div_producer(self):
         fig = plotly.graph_objs.Figure(data=self.calc_graph(), layout=self.layout)
         div = plotly.offline.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
         return div

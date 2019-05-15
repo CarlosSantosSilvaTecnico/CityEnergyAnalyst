@@ -2,8 +2,10 @@ from flask import Flask
 
 import cea.config
 import cea.plots
+import cea.plots.cache
+import webbrowser
+import threading
 
-import yaml
 import os
 
 
@@ -20,13 +22,9 @@ def list_tools():
     return result
 
 
-def load_plots_data():
-    plots_yml = os.path.join(os.path.dirname(cea.plots.__file__), 'plots.yml')
-    return yaml.load(open(plots_yml).read())
-
-
 def main(config):
     config.restricted_to = None  # allow access to the whole config file
+    plot_cache = cea.plots.cache.PlotCache(config.project)
     app = Flask(__name__, static_folder='base/static')
     app.config.from_mapping({'DEBUG': True,
                              'SECRET_KEY': 'secret'})
@@ -36,10 +34,18 @@ def main(config):
     def tools_processor():
         return dict(tools=list_tools())
 
+    # @app.context_processor
+    # def dashboards_processor():
+    #     dashboards = cea.plots.read_dashboards(config, plot_cache)
+    #     return dict(dashboards=dashboards)
+
     @app.context_processor
-    def dashboards_processor():
-        dashboards = cea.plots.read_dashboards(config)
-        return dict(dashboards=dashboards)
+    def project_processor():
+        return dict(project_name=os.path.basename(config.project))
+
+    @app.context_processor
+    def scenario_processor():
+        return dict(scenario_name=os.path.basename(config.scenario_name))
 
     @app.template_filter('escapejs')
     def escapejs(text):
@@ -58,7 +64,7 @@ def main(config):
             u'\u2029': '\\u2029'
         }
         # Escape every ASCII character with a value less than 32.
-        escapes.update(('%c' % z, '\\u%04X' % z) for z in xrange(32))
+        escapes.update(('%c' % z, '\\u%04X' % z) for z in range(32))
 
         retval = []
         for char in text:
@@ -86,24 +92,25 @@ def main(config):
     import plots.routes
     import inputs.routes
     import project.routes
-    import webbrowser
+    import landing.routes
     app.register_blueprint(base.routes.blueprint)
     app.register_blueprint(tools.routes.blueprint)
     app.register_blueprint(plots.routes.blueprint)
     app.register_blueprint(inputs.routes.blueprint)
     app.register_blueprint(project.routes.blueprint)
+    app.register_blueprint(landing.routes.blueprint)
 
     # keep a copy of the configuration we're using
     app.cea_config = config
-    app.plots_data = load_plots_data()
+    app.plot_cache = plot_cache
 
     # keep a list of running scripts - (Process, Connection)
     # the protocol for the Connection messages is tuples ('stdout'|'stderr', str)
     app.workers = {}  # script-name -> (Process, Connection)
 
-    webbrowser.open("http://localhost:5050/")
-    app.run(host='localhost', port=5050, threaded=False)
-
+    # FIXME: this needs to be replaced with a better solution
+    threading.Timer(0.5, lambda: webbrowser.open('http://localhost:5050')).start()
+    app.run(host='localhost', port=5050, threaded=False, debug=config.debug)
 
 
 if __name__ == '__main__':

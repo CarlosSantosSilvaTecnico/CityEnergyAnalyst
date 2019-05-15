@@ -21,7 +21,7 @@ from cea.analysis.multicriteria.optimization_post_processing.individual_configur
 from cea.optimization.slave.natural_gas_main import natural_gas_imports
 from cea.plots.supply_system.likelihood_chart import likelihood_chart
 from cea.analysis.multicriteria.optimization_post_processing.locating_individuals_in_generation_script import get_pointers_to_correct_individual_generation
-from cea.optimization.lca_calculations import lca_calculations
+from cea.optimization.lca_calculations import LcaCalculations
 
 
 from cea.plots.supply_system.map_chart import map_chart
@@ -414,7 +414,7 @@ class Plots(object):
         return data_processed
 
     def preprocessing_create_thermal_network_layout(self, config, locator, output_name_network, output_type_network, buildings_data):
-        from cea.technologies.thermal_network.network_layout.main import network_layout
+        from cea.technologies.network_layout.main import network_layout
         buildings_data = buildings_data.loc[buildings_data["Type"]=="CENTRALIZED"]
         buildings_connected = buildings_data.Name.values
 
@@ -423,12 +423,14 @@ class Plots(object):
         config.network_layout.network_type = output_type_network
         config.network_layout.create_plant = True
         config.network_layout.buildings = buildings_connected
-        network_layout(config, locator, config.network_layout.buildings, output_name_network)
+        network_layout(config, locator, config.network_layout.buildings, output_name_network) #FIXME: change to match new inputs
 
 
     def preprocessing_import_exports(self, locator, generation, individual, generation_pointer, individual_pointer, config):
 
-        data_imports_exports_electricity_W = electricity_calculations_of_all_buildings(generation_pointer, individual_pointer, locator, config)
+        data_imports_exports_electricity_W = electricity_calculations_of_all_buildings(generation_pointer,
+                                                                                       individual_pointer, locator,
+                                                                                       config)
         data_imports_natural_gas_W = natural_gas_imports(generation_pointer, individual_pointer, locator, config)
 
         return  {"E_hourly_Wh":data_imports_exports_electricity_W, "E_yearly_Wh": data_imports_exports_electricity_W.sum(axis=0),
@@ -443,7 +445,7 @@ class Plots(object):
 
     def preprocessing_capacities_installed(self, locator, generation, individual, generation_pointer, individual_pointer, output_type_network, config):
 
-        data_capacities_installed, building_connectivity = supply_system_configuration(generation_pointer, individual_pointer, locator, output_type_network, config)
+        data_capacities_installed, building_connectivity = supply_system_configuration(generation_pointer, individual_pointer, locator, output_type_network)
 
         return {"capacities": data_capacities_installed, "building_connectivity":building_connectivity}
 
@@ -890,7 +892,7 @@ def processing_mcda_data(config, data_raw, generation, generation_pointer, indiv
         data_processed.loc[0]['Capex_Decentralized'] = data_mcda_ind['Capex_a_disconnected']
         data_processed.loc[0]['Opex_Decentralized'] = data_mcda_ind['Opex_total_disconnected']
 
-        lca = lca_calculations(locator, config)
+        lca = LcaCalculations(locator, config.detailed_electricity_pricing)
 
         data_processed.loc[0]['Electricitycosts_for_hotwater'] = data_mcda_ind['Electricity_for_hotwater_GW'].values[0] * 1000000000 * lca.ELEC_PRICE
         data_processed.loc[0]['Electricitycosts_for_appliances'] = data_mcda_ind['Electricity_for_appliances_GW'].values[0] * 1000000000 * lca.ELEC_PRICE

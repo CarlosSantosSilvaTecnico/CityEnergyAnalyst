@@ -4,6 +4,7 @@
 from __future__ import division
 import numpy as np
 import datetime
+from cea.constants import HOURS_IN_YEAR
 
 __author__ = "Gabriel Happle"
 __copyright__ = "Copyright 2016, Architecture and Building Systems - ETH Zurich"
@@ -43,7 +44,7 @@ def has_cooling_system(bpr):
     :rtype: bool
     """
 
-    if bpr.hvac['type_cs'] in {'T1', 'T2', 'T3', 'T4'}:
+    if bpr.hvac['type_cs'] in {'T1', 'T2', 'T3', 'T4', 'T5'}:
         return True
     elif bpr.hvac['type_cs'] in {'T0'}:
         return False
@@ -120,7 +121,7 @@ def has_local_ac_cooling_system(bpr):
 
     if bpr.hvac['type_cs'] in {'T2'}:  # mini-split ac
         return True
-    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T3', 'T4'}:
+    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T3', 'T4', 'T5'}:
         return False
     else:
         raise ValueError('Invalid value for type_cs: %s' % bpr.hvac['type_cs'])
@@ -138,7 +139,7 @@ def has_central_ac_cooling_system(bpr):
 
     if bpr.hvac['type_cs'] in {'T3'}:  # central ac
         return True
-    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T2', 'T4'}:
+    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T2', 'T4', 'T5'}:
         return False
     else:
         raise ValueError('Invalid value for type_cs: %s' % bpr.hvac['type_cs'])
@@ -156,7 +157,7 @@ def has_3for2_cooling_system(bpr):
 
     if bpr.hvac['type_cs'] in {'T4'}:  # 3for2
         return True
-    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T2', 'T3'}:
+    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T2', 'T3', 'T5'}:
         return False
     else:
         raise ValueError('Invalid value for type_cs: %s' % bpr.hvac['type_cs'])
@@ -174,11 +175,27 @@ def has_ceiling_cooling_system(bpr):
 
     if bpr.hvac['type_cs'] in {'T1'}:  # ceiling cooling
         return True
-    elif bpr.hvac['type_cs'] in {'T0', 'T2', 'T3', 'T4'}:
+    elif bpr.hvac['type_cs'] in {'T0', 'T2', 'T3', 'T4', 'T5'}:
         return False
     else:
         raise ValueError('Invalid value for type_cs: %s' % bpr.hvac['type_cs'])
 
+def has_floor_cooling_system(bpr):
+    """
+    Checks if building has ceiling cooling system
+
+    :param bpr: BuildingPropertiesRow
+    :type bpr: cea.demand.building_properties.BuildingPropertiesRow
+    :return: True or False
+    :rtype: bool
+    """
+
+    if bpr.hvac['type_cs'] in {'T5'}:  # floor cooling
+        return True
+    elif bpr.hvac['type_cs'] in {'T0', 'T1', 'T2', 'T3', 'T4'}:
+        return False
+    else:
+        raise ValueError('Invalid value for type_cs: %s' % bpr.hvac['type_cs'])
 
 def cooling_system_is_active(bpr, tsd, t):
     """
@@ -187,7 +204,7 @@ def cooling_system_is_active(bpr, tsd, t):
 
     :param tsd: a dictionary of time step data mapping variable names to ndarrays for each hour of the year.
     :type tsd: dict
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :return: True or False
     :rtype: bool
@@ -208,7 +225,7 @@ def heating_system_is_active(tsd, t):
 
     :param tsd: a dictionary of time step data mapping variable names to ndarrays for each hour of the year.
     :type tsd: dict
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :return: True or False
     :rtype: bool
@@ -242,7 +259,7 @@ def is_heating_season(t, bpr):
     """
     checks if time step is part of the heating season for the building
 
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :param bpr: BuildingPropertiesRow
     :type bpr: cea.demand.building_properties.BuildingPropertiesRow
@@ -263,7 +280,7 @@ def is_heating_season(t, bpr):
             return True
 
         elif heating_start > heating_end and \
-                (heating_start <= t <= 8760 or 0 <= t <= heating_end):
+                (heating_start <= t <= HOURS_IN_YEAR or 0 <= t <= heating_end):
             # heating season over the year end (north hemisphere)
             return True
 
@@ -280,7 +297,7 @@ def is_cooling_season(t, bpr):
     """
     checks if time step is part of the cooling season for the building
 
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :param bpr: BuildingPropertiesRow
     :type bpr: cea.demand.building_properties.BuildingPropertiesRow
@@ -293,7 +310,7 @@ def is_cooling_season(t, bpr):
         cooling_start = convert_date_to_hour(bpr.hvac['cooling-season-start'])
         cooling_end = convert_date_to_hour(bpr.hvac['cooling-season-end']) + 23  # end at the last hour of the day
 
-        # check if cooling season is at the end of the year (south hemisphere) or in the middle of the year (norht)
+        # check if cooling season is at the end of the year (south hemisphere) or in the middle of the year (north)
         if cooling_start < cooling_end and \
                 cooling_start <= t <= cooling_end:
 
@@ -301,7 +318,7 @@ def is_cooling_season(t, bpr):
             return True
 
         elif cooling_start > cooling_end and \
-                (cooling_start <= t <= 8760 or 0 <= t <= cooling_end):
+                (cooling_start <= t <= HOURS_IN_YEAR or 0 <= t <= cooling_end):
             # cooling season around the year end (south hemisphere)
             return True
 
@@ -328,8 +345,8 @@ def calc_simple_temp_control(tsd, bpr, weekday):
     :rtype: dict
     """
 
-    tsd['ta_hs_set'] = np.vectorize(get_heating_system_set_point)(tsd['people'], range(8760), bpr, weekday)
-    tsd['ta_cs_set'] = np.vectorize(get_cooling_system_set_point)(tsd['people'], range(8760), bpr, weekday)
+    tsd['ta_hs_set'] = np.vectorize(get_heating_system_set_point)(tsd['people'], range(HOURS_IN_YEAR), bpr, weekday)
+    tsd['ta_cs_set'] = np.vectorize(get_cooling_system_set_point)(tsd['people'], range(HOURS_IN_YEAR), bpr, weekday)
 
     return tsd
 
@@ -338,7 +355,7 @@ def get_heating_system_set_point(people, t, bpr, weekday):
     """
 
     :param people:
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :param bpr: BuildingPropertiesRow
     :type bpr: cea.demand.building_properties.BuildingPropertiesRow
@@ -364,7 +381,7 @@ def get_cooling_system_set_point(people, t, bpr, weekday):
     """
 
     :param people:
-    :param t: hour of the year, simulation time step [0...8760]
+    :param t: hour of the year, simulation time step [0...HOURS_IN_YEAR]
     :type t: int
     :param bpr: BuildingPropertiesRow
     :type bpr: cea.demand.building_properties.BuildingPropertiesRow

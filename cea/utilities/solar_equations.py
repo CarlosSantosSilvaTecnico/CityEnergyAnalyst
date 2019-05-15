@@ -11,6 +11,7 @@ import collections
 from math import *
 from timezonefinder import TimezoneFinder
 import pytz
+from cea.constants import HOURS_IN_YEAR
 
 __author__ = "Jimeno A. Fonseca"
 __copyright__ = "Copyright 2015, Architecture and Building Systems - ETH Zurich"
@@ -89,7 +90,7 @@ SunProperties = collections.namedtuple('SunProperties', ['g', 'Sz', 'Az', 'ha', 
 def calc_datetime_local_from_weather_file(weather_data, latitude, longitude):
     # read date from the weather file
     year = weather_data['year'][0]
-    datetime = pd.date_range(str(year) + '/01/01', periods=8760, freq='H')
+    datetime = pd.date_range(str(year) + '/01/01', periods=HOURS_IN_YEAR, freq='H')
 
     # get local time zone
     etc_timezone = get_local_etc_timezone(latitude, longitude)
@@ -228,6 +229,12 @@ def filter_low_potential(radiation_json_path, metadata_csv_path, config):
     #. No solar panels on windows.
     """
 
+    def f(x):
+        if x <= 50:
+            return 0
+        else:
+            return x
+
     # read radiation file
     sensors_rad = pd.read_json(radiation_json_path)
     sensors_metadata = pd.read_csv(metadata_csv_path)
@@ -254,7 +261,7 @@ def filter_low_potential(radiation_json_path, metadata_csv_path, config):
     sensors_metadata_clean = sensors_metadata[sensors_metadata.total_rad_Whm2 >= annual_radiation_threshold_Whperm2]
     sensors_rad_clean = sensors_rad[sensors_metadata_clean.index.tolist()]  # keep sensors above min radiation
 
-    sensors_rad_clean[sensors_rad_clean[:] <= 50] = 0  # eliminate points when hourly production < 50 W/m2
+    sensors_rad_clean = sensors_rad_clean.applymap(lambda x: f(x))
 
     return max_annual_radiation, annual_radiation_threshold_Whperm2, sensors_rad_clean, sensors_metadata_clean
 

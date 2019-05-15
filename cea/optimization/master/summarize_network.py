@@ -14,6 +14,7 @@ from cea.optimization.constants import K_DH, ZERO_DEGREES_CELSIUS_IN_KELVIN
 from cea.resources.geothermal import calc_ground_temperature
 from cea.constants import HEAT_CAPACITY_OF_WATER_JPERKGK
 from cea.utilities import epwreader
+from cea.constants import HOURS_IN_YEAR
 
 
 __author__ = "Jimeno A. Fonseca"
@@ -58,17 +59,17 @@ def network_main(locator, total_demand, building_names, config, gv, key):
     num_buildings_network = total_demand.Name.count()
     if len(list_network_name) == 0:
         network_name = ''
-        pipes_tot_length = pd.read_csv(locator.get_optimization_network_edge_list_file(network_type, network_name),
+        pipes_tot_length = pd.read_csv(locator.get_thermal_network_edge_list_file(network_type, network_name),
                                        usecols=['pipe length']).sum().values
     else:
         for i, network_name in enumerate(list_network_name):
             if i == 0:
                 pipes_tot_length = pd.read_csv(
-                    locator.get_optimization_network_edge_list_file(network_type, network_name),
+                    locator.get_thermal_network_edge_list_file(network_type, network_name),
                     usecols=['pipe length']).sum().values
             else:
                 pipes_tot_length = pipes_tot_length + pd.read_csv(
-                    locator.get_optimization_network_edge_list_file(network_type, network_name),
+                    locator.get_thermal_network_edge_list_file(network_type, network_name),
                     usecols=['pipe length']).sum().values
 
     ntwk_length = pipes_tot_length.sum() * num_buildings_network / gv.num_tot_buildings
@@ -76,21 +77,21 @@ def network_main(locator, total_demand, building_names, config, gv, key):
     # empty vectors
     buildings = []
     substations = []
-    Qcdata_netw_total_kWh = np.zeros(8760)
-    mcpdata_netw_total_kWperC = np.zeros(8760)
-    Electr_netw_total_W = np.zeros(8760)
-    mdot_heat_netw_all_kgpers = np.zeros(8760)
-    mdot_cool_space_cooling_and_refrigeration_netw_all_kgpers = np.zeros(8760)
-    mdot_cool_space_cooling_data_center_and_refrigeration_netw_all_kgpers = np.zeros(8760)
-    Q_DH_building_netw_total_W = np.zeros(8760)
-    Q_DC_building_netw_space_cooling_and_refrigeration_total_W = np.zeros(8760)
-    Q_DC_building_netw_space_cooling_data_center_and_refrigeration_total_W = np.zeros(8760)
-    sum_tret_mdot_heat = np.zeros(8760)
-    sum_tret_mdot_cool_space_cooling_and_refrigeration = np.zeros(8760)
-    sum_tret_mdot_cool_space_cooling_data_center_and_refrigeration = np.zeros(8760)
-    mdot_heat_netw_min_kgpers = np.zeros(8760) + 1E6
-    mdot_cool_space_cooling_and_refrigeration_netw_min_kgpers = np.zeros(8760) + 1E6
-    mdot_cool_space_cooling_data_center_and_refrigeration_netw_min_kgpers = np.zeros(8760) + 1E6
+    Qcdata_netw_total_kWh = np.zeros(HOURS_IN_YEAR)
+    mcpdata_netw_total_kWperC = np.zeros(HOURS_IN_YEAR)
+    Electr_netw_total_W = np.zeros(HOURS_IN_YEAR)
+    mdot_heat_netw_all_kgpers = np.zeros(HOURS_IN_YEAR)
+    mdot_cool_space_cooling_and_refrigeration_netw_all_kgpers = np.zeros(HOURS_IN_YEAR)
+    mdot_cool_space_cooling_data_center_and_refrigeration_netw_all_kgpers = np.zeros(HOURS_IN_YEAR)
+    Q_DH_building_netw_total_W = np.zeros(HOURS_IN_YEAR)
+    Q_DC_building_netw_space_cooling_and_refrigeration_total_W = np.zeros(HOURS_IN_YEAR)
+    Q_DC_building_netw_space_cooling_data_center_and_refrigeration_total_W = np.zeros(HOURS_IN_YEAR)
+    sum_tret_mdot_heat = np.zeros(HOURS_IN_YEAR)
+    sum_tret_mdot_cool_space_cooling_and_refrigeration = np.zeros(HOURS_IN_YEAR)
+    sum_tret_mdot_cool_space_cooling_data_center_and_refrigeration = np.zeros(HOURS_IN_YEAR)
+    mdot_heat_netw_min_kgpers = np.zeros(HOURS_IN_YEAR) + 1E6
+    mdot_cool_space_cooling_and_refrigeration_netw_min_kgpers = np.zeros(HOURS_IN_YEAR) + 1E6
+    mdot_cool_space_cooling_data_center_and_refrigeration_netw_min_kgpers = np.zeros(HOURS_IN_YEAR) + 1E6
     iteration = 0
 
     for building_name in building_names:
@@ -214,11 +215,11 @@ def network_main(locator, total_demand, building_names, config, gv, key):
                                                                                      mdot_cool_space_cooling_data_center_and_refrigeration_netw_all_kgpers,
                                                                                      HEAT_CAPACITY_OF_WATER_JPERKGK, "negative")
 
-    day_of_max_heatmassflow_fin = np.zeros(8760)
+    day_of_max_heatmassflow_fin = np.zeros(HOURS_IN_YEAR)
     day_of_max_heatmassflow = find_index_of_max(mdot_heat_netw_all_kgpers)
     day_of_max_heatmassflow_fin[:] = day_of_max_heatmassflow
 
-    for i in range(8760):
+    for i in range(HOURS_IN_YEAR):
         if T_DCN_space_cooling_data_center_and_refrigeration_sup_K[i] > T_DCN_space_cooling_data_center_and_refrigeration_re_K[i]:
             print (i)
 

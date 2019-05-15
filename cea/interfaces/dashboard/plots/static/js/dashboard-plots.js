@@ -8,9 +8,14 @@ $(document).ready(function() {
     console.log(categories);
 
     $('#cea-plot-category').on('change', function(e){
-        let category_label = $("option:selected", this);
         let category_name = this.value;
-        console.log(categories[valueSelected]['plots'])
+        $('#cea-plot-name').empty();
+        $.each(categories[category_name]['plots'], function(i, p){
+            console.log(p);
+            $('#cea-plot-name').append($("<option></option>").attr('value', p.id).text(p.name));
+        });
+
+        console.log(categories[category_name]['plots'])
     });
 
     $('#cea-dashboard-edit-plot').on('show.bs.modal', function (e) {
@@ -26,6 +31,19 @@ $(document).ready(function() {
             console.log('something went terribly wrong?!');
             console.log(data);
         });
+    });
+
+    $('#dashboard-selector').change(function () {
+        if($(this).val() === 'manage') {
+            window.location.href = './'+ 'manage';
+        } else if($(this).val() === 'new') {
+            $.get('new', function (html) {
+                $('#cea-prompt .modal-content').html(html);
+                $('#cea-prompt').modal({'show': true, 'backdrop': 'static'});
+            });
+        } else {
+            window.location.href = './'+ $(this).val();
+        }
     });
 });
 
@@ -49,8 +67,4 @@ function load_all_plots() {
             console.log(data);
         });
     });
-}
-
-function cea_rename_dashboard() {
-
 }

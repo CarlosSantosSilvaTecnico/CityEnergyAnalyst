@@ -1,8 +1,7 @@
-from __future__ import print_function
-
 """
 Radiation engine and geometry handler for CEA
 """
+from __future__ import print_function
 from __future__ import division
 import pandas as pd
 import time
@@ -124,7 +123,7 @@ def buildings2radiance(rad, building_surface_properties, geometry_3D_zone, geome
     return
 
 
-def reader_surface_properties(locator, input_shp, region):
+def reader_surface_properties(locator, input_shp):
     """
     This function returns a dataframe with the emissivity values of walls, roof, and windows
     of every building in the scene
@@ -134,9 +133,9 @@ def reader_surface_properties(locator, input_shp, region):
 
     # local variables
     architectural_properties = gpdf.from_file(input_shp).drop('geometry', axis=1)
-    surface_database_windows = pd.read_excel(locator.get_envelope_systems(region), "WINDOW")
-    surface_database_roof = pd.read_excel(locator.get_envelope_systems(region), "ROOF")
-    surface_database_walls = pd.read_excel(locator.get_envelope_systems(region), "WALL")
+    surface_database_windows = pd.read_excel(locator.get_envelope_systems(), "WINDOW")
+    surface_database_roof = pd.read_excel(locator.get_envelope_systems(), "ROOF")
+    surface_database_walls = pd.read_excel(locator.get_envelope_systems(), "WALL")
 
     # querry data
     df = architectural_properties.merge(surface_database_windows, left_on='type_win', right_on='code')
@@ -181,7 +180,6 @@ def main(config):
     #  the selected buildings are the ones for which the individual radiation script is run for
     #  this is only activated when in default.config, run_all_buildings is set as 'False'
     settings = config.radiation_daysim
-    region = config.region
 
     print("verifying geometry files")
     print(locator.get_zone_geometry())
@@ -190,17 +188,19 @@ def main(config):
 
     # import material properties of buildings
     building_surface_properties = reader_surface_properties(locator=locator,
-                                                            input_shp=locator.get_building_architecture(),
-                                                            region=region)
+                                                            input_shp=locator.get_building_architecture())
     print("creating 3D geometry and surfaces")
     # create geometrical faces of terrain and buildingsL
     elevation, geometry_terrain, geometry_3D_zone, geometry_3D_surroundings = geometry_generator.geometry_main(locator,
-                                                                                                    settings)
+                                                                                                               config)
 
     print("Sending the scene: geometry and materials to daysim")
     # send materials
     daysim_mat = locator.get_temporary_file('default_materials.rad')
     rad = py2radiance.Rad(daysim_mat, locator.get_temporary_folder())
+    print("\tradiation_main: rad.base_file_path: {}".format(rad.base_file_path))
+    print("\tradiation_main: rad.data_folder_path: {}".format(rad.data_folder_path))
+    print("\tradiation_main: rad.command_file: {}".format(rad.command_file))
     add_rad_mat(daysim_mat, building_surface_properties)
     # send terrain
     terrain2radiance(rad, geometry_terrain)
@@ -208,6 +208,7 @@ def main(config):
     buildings2radiance(rad, building_surface_properties, geometry_3D_zone, geometry_3D_surroundings)
     # create scene out of all this
     rad.create_rad_input_file()
+    print("\tradiation_main: rad.rad_file_path: {}".format(rad.rad_file_path))
 
     time1 = time.time()
     radiation_singleprocessing(rad, geometry_3D_zone, locator, config.weather, settings)

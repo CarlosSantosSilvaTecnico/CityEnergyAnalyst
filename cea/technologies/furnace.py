@@ -40,8 +40,6 @@ def calc_eta_furnace(Q_load, Q_design, T_return_to_boiler, MOIST_TYPE, gv):
     :type MOIST_TYPE : float
     :param MOIST_TYPE: moisture type of the fuel, set in MasterToSlaveVariables ('wet' or 'dry')
 
-    :param gV: globalvar.py
-
     up to 6MW_therm_out Capacity proven!
     = 8 MW th (burner)
 
@@ -123,8 +121,6 @@ def furnace_op_cost(Q_therm_W, Q_design_W, T_return_to_boiler_K, MOIST_TYPE, lca
 
     :type MOIST_TYPE : float
     :param MOIST_TYPE: moisture type of the fuel, set in MasterToSlaveVariables ('wet' or 'dry')
-
-    :param gV: globalvar.py
 
     :rtype C_furn : float
     :returns C_furn: Total generation cost for required load (per hour) in [CHF], including profits from electricity sold
@@ -210,7 +206,7 @@ def calc_Cinv_furnace(Q_design_W, Q_annual_W, config, locator, technology_type):
     :returns InvCa: annualized investment costs in [CHF] including O&M
         
     """
-    furnace_cost_data = pd.read_excel(locator.get_supply_systems(config.region), sheetname="Furnace")
+    furnace_cost_data = pd.read_excel(locator.get_supply_systems(), sheet_name="Furnace")
     furnace_cost_data = furnace_cost_data[furnace_cost_data['code'] == technology_type]
     # if the Q_design is below the lowest capacity available for the technology, then it is replaced by the least
     # capacity for the corresponding technology from the database

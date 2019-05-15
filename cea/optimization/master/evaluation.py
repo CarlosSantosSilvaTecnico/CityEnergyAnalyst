@@ -209,7 +209,8 @@ def evaluation_main(individual, building_names, locator, solar_features, network
     print ('PEN_cooling_MJoil = ' + str(PEN_cooling_MJoil))
 
     # District Electricity Calculations
-    (costs_electricity_USD, GHG_electricity_tonCO2, PEN_electricity_MJoil) = electricity_main.electricity_calculations_of_all_buildings(DHN_barcode, DCN_barcode, locator, master_to_slave_vars, network_features, gv, prices, lca, config)
+    (costs_electricity_USD, GHG_electricity_tonCO2, PEN_electricity_MJoil) = electricity_main.electricity_calculations_of_all_buildings(
+        DHN_barcode, DCN_barcode, locator, master_to_slave_vars, lca, config)
 
     costs_USD += costs_electricity_USD
     GHG_tonCO2 += GHG_electricity_tonCO2
@@ -265,7 +266,6 @@ def check_invalid(individual, nBuildings, config):
     It can also generate a new individual, to replace the rejected individual
     :param individual: individual sent for checking
     :param nBuildings: number of buildings
-    :param gv: global variables class
     :type individual: list
     :type nBuildings: int
     :type gv: class
@@ -292,12 +292,14 @@ def check_invalid(individual, nBuildings, config):
         if individual[frank + 2 * i + 1] < 0:
             individual[frank + 2 * i + 1] = 0
 
+    #CHECK DISTRICT HEATING PLANTS
     sharePlants = 0
     for i in range(N_HEAT):
         sharePlants += individual[2 * i + 1]
     if sharePlants > 1.0 and config.district_heating_network:
         valid = False
 
+    #CHECK RANGE OF SOLAR
     shareSolar = 0
     nSol = 0
     for i in range(N_SOLAR):
@@ -306,6 +308,7 @@ def check_invalid(individual, nBuildings, config):
     if nSol > 0.0 and shareSolar > 1.0:
         valid = False
 
+    #CHECK COOLING NETWORK
     if config.district_cooling_network:  # This is a temporary fix, need to change it in an elaborate method
         for i in range(N_SOLAR - 1):
             solar = i + 1
@@ -325,12 +328,14 @@ def check_invalid(individual, nBuildings, config):
         elif individual[heating_part + 2*i] == 0:
             individual[heating_part + 2 * i + 1] = 0
 
+    #CHECK COOLING PLANTS
     sharePlants = 0
     for i in range(N_COOL):
         sharePlants += individual[heating_part + 2 * i + 1]
     if sharePlants > 1.0 and config.district_cooling_network:
         valid = False
 
+    #CHECK IF AT THE END OF THE PROBLEM THE FLAG TURNED INTO NOT VALID
     if not valid:
         newInd = generation.generate_main(nBuildings, config)
 

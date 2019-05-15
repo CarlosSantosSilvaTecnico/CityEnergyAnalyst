@@ -1,17 +1,17 @@
-from __future__ import division
-from __future__ import print_function
-
 """
 Lists the plots by category. See ``cea/plots/__init__.py`` for documentation on how plots are organized and
 the conventions for adding new plots.
 """
 
+from __future__ import division
+from __future__ import print_function
 import pkgutil
 import importlib
 import inspect
 import cea.plots
 import cea.config
 import cea.inputlocator
+import cea.plots.cache
 
 __author__ = "Daren Thomas"
 __copyright__ = "Copyright 2018, Architecture and Building Systems - ETH Zurich"
@@ -36,6 +36,8 @@ def list_categories():
             continue
         try:
             yield PlotCategory(module)
+        except GeneratorExit:
+            return
         except:
             # this module does not follow the conventions outlined in ``cea.plots.__init__.py`` and will be
             # ignored
@@ -99,17 +101,16 @@ class PlotCategory(object):
 
 if __name__ == '__main__':
     config = cea.config.Configuration()
-    buildings = None
+    cache = cea.plots.cache.NullPlotCache()
 
     for category in list_categories():
         print('category:', category.name, ':', category.label)
         for plot_class in category.plots:
             print('plot_class:', plot_class)
-            plot = plot_class(config.project, parameters={
-                'scenario-name': config.scenario_name,
-                'buildings': buildings,
-                'region': config.region,
-            })
+            parameters = {
+                k: config.get(v) for k, v in plot_class.expected_parameters.items()
+            }
+            plot = plot_class(config.project, parameters=parameters, cache=cache)
             assert plot.name, 'plot missing name: %s' % plot
             assert plot.category_name == category.name
             print('plot:', plot.name, '/', plot.id(), '/', plot.title)

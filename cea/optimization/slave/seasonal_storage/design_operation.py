@@ -1,13 +1,13 @@
-    # -*- coding: utf-8 -*-
-""" 
-
-Storage Design And Operation  
-    This File is called by "Storage_Optimizer_incl_Losses_main.py" (Optimization Routine) and 
-    will operate the storage according to the inputs given by the main file.
-    
-    The operation data is stored 
-            
+# -*- coding: utf-8 -*-
 """
+Storage Design And Operation
+    This File is called by "Storage_Optimizer_incl_Losses_main.py" (Optimization Routine) and
+    will operate the storage according to the inputs given by the main file.
+
+    The operation data is stored
+
+"""
+
 from __future__ import division
 import pandas as pd
 import os
@@ -18,6 +18,7 @@ from cea.optimization.constants import *
 from cea.technologies.constants import DT_HEAT
 from cea.resources.geothermal import calc_ground_temperature
 from cea.utilities import epwreader
+from cea.constants import HOURS_IN_YEAR
 
 def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, locator,
                    STORAGE_SIZE_m3, STORE_DATA, master_to_slave_vars, P_HP_max_W, config):
@@ -32,7 +33,6 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
     :param STORE_DATA:
     :param master_to_slave_vars:
     :param P_HP_max_W:
-    :param gV:
     :type CSV_NAME:
     :type SOLCOL_TYPE:
     :type T_storage_old_K:
@@ -49,7 +49,7 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
 
 
     # Import Network Data
-    Network_Data = pd.read_csv(locator.get_optimization_network_data_folder(CSV_NAME))
+    Network_Data = pd.read_csv(locator.get_thermal_network_data_folder(CSV_NAME))
 
     # recover Network  Data:
     mdot_heat_netw_total_kgpers = Network_Data['mdot_DH_netw_total_kgpers'].values
@@ -58,9 +58,9 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
     T_DH_supply_array_K = Network_Data['T_DHNf_sup_K'].values
     Q_wasteheatServer_kWh =  Network_Data['Qcdata_netw_total_kWh'].values
     
-    Solar_Data_SC = np.zeros((8760, 7))
-    Solar_Data_PVT = np.zeros((8760, 7))
-    Solar_Data_PV = np.zeros((8760, 7))
+    Solar_Data_SC = np.zeros((HOURS_IN_YEAR, 7))
+    Solar_Data_PVT = np.zeros((HOURS_IN_YEAR, 7))
+    Solar_Data_PV = np.zeros((HOURS_IN_YEAR, 7))
     
     Solar_Tscr_th_SC_K = Solar_Data_SC[:,6]
     Solar_E_aux_SC_req_kWh = Solar_Data_SC[:,1]
@@ -107,7 +107,7 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
     Q_SC_ET_gen_Wh = Solar_Q_th_SC_ET_kWh * 1000 * master_to_slave_vars.SOLAR_PART_SC_ET
     Q_SC_FP_gen_Wh = Solar_Q_th_SC_FP_kWh * 1000 * master_to_slave_vars.SOLAR_PART_SC_FP
     Q_PVT_gen_Wh = Solar_Q_th_PVT_kW * 1000 * master_to_slave_vars.SOLAR_PART_PVT
-    Q_SCandPVT_gen_Wh = np.zeros(8760)
+    Q_SCandPVT_gen_Wh = np.zeros(HOURS_IN_YEAR)
     weather_data = epwreader.epw_reader(config.weather)[['year', 'drybulb_C', 'wetbulb_C','relhum_percent',
                                                               'windspd_ms', 'skytemp_C']]
     ground_temp = calc_ground_temperature(locator, config, weather_data['drybulb_C'], depth_m=10)
@@ -120,44 +120,44 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
     E_PVT_Wh = PVT_kWh * 1000  * master_to_slave_vars.SOLAR_PART_PVT
 
     HOUR = 0
-    Q_to_storage_avail_W = np.zeros(8760)
-    Q_from_storage_W = np.zeros(8760)
-    to_storage = np.zeros(8760)
-    Q_storage_content_fin_W = np.zeros(8760)
-    Q_server_to_directload_W = np.zeros(8760)
-    Q_server_to_storage_W = np.zeros(8760)
-    Q_compair_to_directload_W = np.zeros(8760)
-    Q_compair_to_storage_W = np.zeros(8760)
-    Q_PVT_to_directload_W = np.zeros(8760)
-    Q_PVT_to_storage_W = np.zeros(8760)
-    Q_SC_ET_to_directload_W = np.zeros(8760)
-    Q_SC_ET_to_storage_W = np.zeros(8760)
-    Q_SC_FP_to_directload_W = np.zeros(8760)
-    Q_SC_FP_to_storage_W = np.zeros(8760)
-    T_storage_fin_K = np.zeros(8760)
-    Q_from_storage_fin_W = np.zeros(8760)
-    Q_to_storage_fin_W = np.zeros(8760)
-    E_aux_ch_fin_W = np.zeros(8760)
-    E_aux_dech_fin_W = np.zeros(8760)
-    #E_PV_Wh_fin = np.zeros(8760)
-    E_aux_solar_W = np.zeros(8760)
-    Q_missing_fin_W = np.zeros(8760)
-    Q_from_storage_used_fin_W = np.zeros(8760)
-    Q_rejected_fin_W = np.zeros(8760)
-    mdot_DH_fin_kgpers = np.zeros(8760)
-    Q_uncontrollable_fin_Wh = np.zeros(8760)
-    E_aux_solar_and_heat_recovery_Wh = np.zeros(8760)
-    HPServerHeatDesignArray_kWh = np.zeros(8760)
-    HPpvt_designArray_Wh = np.zeros(8760)
-    HPCompAirDesignArray_kWh = np.zeros(8760)
-    HPScDesignArray_Wh = np.zeros(8760)
+    Q_to_storage_avail_W = np.zeros(HOURS_IN_YEAR)
+    Q_from_storage_W = np.zeros(HOURS_IN_YEAR)
+    to_storage = np.zeros(HOURS_IN_YEAR)
+    Q_storage_content_fin_W = np.zeros(HOURS_IN_YEAR)
+    Q_server_to_directload_W = np.zeros(HOURS_IN_YEAR)
+    Q_server_to_storage_W = np.zeros(HOURS_IN_YEAR)
+    Q_compair_to_directload_W = np.zeros(HOURS_IN_YEAR)
+    Q_compair_to_storage_W = np.zeros(HOURS_IN_YEAR)
+    Q_PVT_to_directload_W = np.zeros(HOURS_IN_YEAR)
+    Q_PVT_to_storage_W = np.zeros(HOURS_IN_YEAR)
+    Q_SC_ET_to_directload_W = np.zeros(HOURS_IN_YEAR)
+    Q_SC_ET_to_storage_W = np.zeros(HOURS_IN_YEAR)
+    Q_SC_FP_to_directload_W = np.zeros(HOURS_IN_YEAR)
+    Q_SC_FP_to_storage_W = np.zeros(HOURS_IN_YEAR)
+    T_storage_fin_K = np.zeros(HOURS_IN_YEAR)
+    Q_from_storage_fin_W = np.zeros(HOURS_IN_YEAR)
+    Q_to_storage_fin_W = np.zeros(HOURS_IN_YEAR)
+    E_aux_ch_fin_W = np.zeros(HOURS_IN_YEAR)
+    E_aux_dech_fin_W = np.zeros(HOURS_IN_YEAR)
+    #E_PV_Wh_fin = np.zeros(HOURS_IN_YEAR)
+    E_aux_solar_W = np.zeros(HOURS_IN_YEAR)
+    Q_missing_fin_W = np.zeros(HOURS_IN_YEAR)
+    Q_from_storage_used_fin_W = np.zeros(HOURS_IN_YEAR)
+    Q_rejected_fin_W = np.zeros(HOURS_IN_YEAR)
+    mdot_DH_fin_kgpers = np.zeros(HOURS_IN_YEAR)
+    Q_uncontrollable_fin_Wh = np.zeros(HOURS_IN_YEAR)
+    E_aux_solar_and_heat_recovery_Wh = np.zeros(HOURS_IN_YEAR)
+    HPServerHeatDesignArray_kWh = np.zeros(HOURS_IN_YEAR)
+    HPpvt_designArray_Wh = np.zeros(HOURS_IN_YEAR)
+    HPCompAirDesignArray_kWh = np.zeros(HOURS_IN_YEAR)
+    HPScDesignArray_Wh = np.zeros(HOURS_IN_YEAR)
     
     T_amb_K = 10 + 273.0 # K
     T_storage_min_K = master_to_slave_vars.T_ST_MAX
     Q_disc_seasonstart_W = [0]
     Q_loss_tot_W = 0
     
-    while HOUR < 8760:
+    while HOUR < HOURS_IN_YEAR:
         # Store later on this data
         HPServerHeatDesign_kWh = 0
         HPpvt_design_Wh = 0
@@ -327,10 +327,10 @@ def Storage_Design(CSV_NAME, SOLCOL_TYPE, T_storage_old_K, Q_in_storage_old_W, l
         """ STORE DATA """
     E_aux_solar_and_heat_recovery_flat_Wh = E_aux_solar_and_heat_recovery_Wh.flatten()
     # Calculate imported and exported Electricity Arrays:
-    E_produced_total_W = np.zeros(8760)
-    E_consumed_for_storage_solar_and_heat_recovery_W = np.zeros(8760)
+    E_produced_total_W = np.zeros(HOURS_IN_YEAR)
+    E_consumed_for_storage_solar_and_heat_recovery_W = np.zeros(HOURS_IN_YEAR)
     
-    for hour in range(8760):
+    for hour in range(HOURS_IN_YEAR):
         E_produced_total_W[hour] = E_PV_Wh[hour] + E_PVT_Wh[hour]
         E_consumed_for_storage_solar_and_heat_recovery_W[hour] = E_aux_ch_fin_W[hour] + E_aux_dech_fin_W[hour] + E_aux_solar_and_heat_recovery_Wh[hour]
 

@@ -2,9 +2,10 @@ from __future__ import division
 import pandas as pd
 import numpy as np
 import random
-import cea.globalvar
 import cea.inputlocator
 import cea.config
+from cea.utilities import epwreader
+from cea.constants import HOURS_IN_YEAR
 
 __author__ = "Jimeno A. Fonseca"
 __copyright__ = "Copyright 2015, Architecture and Building Systems - ETH Zurich"
@@ -77,7 +78,7 @@ def calc_schedules(list_uses, archetype_schedules, bpr, archetype_values, stocha
         schedules = {}
         # occupant-related schedules are 0 since there are no occupants
         for schedule in ['people', 've', 'Qs', 'X', 'Vww', 'Vw']:
-            schedules[schedule] = np.zeros(8760)
+            schedules[schedule] = np.zeros(HOURS_IN_YEAR)
         # electricity and process schedules may be greater than 0
         for schedule in ['Ea', 'El', 'Qcre', 'Ed', 'Epro', 'Qhpro']:
             codes = {'Ea': 1, 'El': 1, 'Ed': 1, 'Epro': 3, 'Qhpro': 3,'Qcre': 3}
@@ -128,7 +129,7 @@ def calc_deterministic_schedules(archetype_schedules, archetype_values, bpr, lis
     schedules = {}
     normalizing_values = {}
     for schedule in ['people'] + occupant_schedules + electricity_schedules + water_schedules + process_schedules:
-        schedules[schedule] = np.zeros(8760, dtype=float)
+        schedules[schedule] = np.zeros(HOURS_IN_YEAR, dtype=float)
         normalizing_values[schedule] = 0.0
     for num in range(len(list_uses)):
         if bpr.occupancy[list_uses[num]] > 0:
@@ -147,7 +148,7 @@ def calc_deterministic_schedules(archetype_schedules, archetype_values, bpr, lis
 
     for label in occupant_schedules:
         if normalizing_values[label] == 0:
-            schedules[label] = np.zeros(8760)
+            schedules[label] = np.zeros(HOURS_IN_YEAR)
         else:
             schedules[label] = schedules[label] / normalizing_values[label]
 
@@ -210,7 +211,7 @@ def calc_stochastic_schedules(archetype_schedules, archetype_values, bpr, list_u
     schedules = {}
     normalizing_values = {}
     for schedule in ['people'] + occupant_schedules + electricity_schedules + water_schedules + process_schedules:
-        schedules[schedule] = np.zeros(8760)
+        schedules[schedule] = np.zeros(HOURS_IN_YEAR)
         normalizing_values[schedule] = 0.0
 
     # vector of mobility parameters
@@ -219,7 +220,7 @@ def calc_stochastic_schedules(archetype_schedules, archetype_values, bpr, list_u
 
     for num in range(len(list_uses)):
         current_share_of_use = bpr.occupancy[list_uses[num]]
-        current_stochastic_schedule = np.zeros(8760)
+        current_stochastic_schedule = np.zeros(HOURS_IN_YEAR)
         if current_share_of_use > 0:
             occupants_in_current_use = int(
                 archetype_values['people'][num] * current_share_of_use * bpr.rc_model['NFA_m2'])
@@ -274,7 +275,7 @@ def calc_stochastic_schedules(archetype_schedules, archetype_values, bpr, list_u
 
     for label in occupant_schedules + electricity_schedules + process_schedules + water_schedules:
         if normalizing_values[label] == 0:
-            schedules[label] = np.zeros(8760)
+            schedules[label] = np.zeros(HOURS_IN_YEAR)
         else:
             schedules[label] /= normalizing_values[label]
 
@@ -393,7 +394,7 @@ def calc_remaining_schedules_deterministic(archetype_schedules, archetype_values
     :return: normalized schedule for a given occupancy type
     """
 
-    current_schedule = np.zeros(8760)
+    current_schedule = np.zeros(HOURS_IN_YEAR)
     normalizing_value = 0.0
     for num in range(len(list_uses)):
         if archetype_values[num] != 0:  # do not consider when the value is 0
@@ -544,15 +545,15 @@ def get_yearly_vectors(dates, occ_schedules, el_schedules, dhw_schedules, pro_sc
     return occ, el, dhw, pro
 
 
-def read_schedules(use, x):
+def read_schedules(use, archetypes_schedules):
     """
     This function reads the occupancy, electricity, domestic hot water, process electricity and monthly schedules for a
     given use type from the schedules database.
 
     :param use: occupancy type (e.g. 'SCHOOL')
     :type use: str
-    :param x: Excel worksheet containing the schedule database for a given occupancy type from the archetypes database
-    :type x: DataFrame
+    :param archetypes_schedules: Excel worksheet containing the schedule database for a given occupancy type from the archetypes database
+    :type archetypes_schedules: DataFrame
 
     :return occ: the daily occupancy schedule for the given occupancy type
     :rtype occ: list[array]
@@ -569,24 +570,24 @@ def read_schedules(use, x):
     """
 
     # read schedules from excel file
-    occ = [x['Weekday_1'].values[:24], x['Saturday_1'].values[:24], x['Sunday_1'].values[:24]]
-    el = [x['Weekday_2'].values[:24], x['Saturday_2'].values[:24], x['Sunday_2'].values[:24]]
-    dhw = [x['Weekday_3'].values[:24], x['Saturday_3'].values[:24], x['Sunday_3'].values[:24]]
-    month = x['month'].values[:12]
+    occ = [archetypes_schedules['Weekday_1'].values[:24], archetypes_schedules['Saturday_1'].values[:24], archetypes_schedules['Sunday_1'].values[:24]]
+    el = [archetypes_schedules['Weekday_2'].values[:24], archetypes_schedules['Saturday_2'].values[:24], archetypes_schedules['Sunday_2'].values[:24]]
+    dhw = [archetypes_schedules['Weekday_3'].values[:24], archetypes_schedules['Saturday_3'].values[:24], archetypes_schedules['Sunday_3'].values[:24]]
+    month = archetypes_schedules['month'].values[:12]
 
     if use == "INDUSTRIAL":
-        pro = [x['Weekday_4'].values[:24], x['Saturday_4'].values[:24], x['Sunday_4'].values[:24]]
+        pro = [archetypes_schedules['Weekday_4'].values[:24], archetypes_schedules['Saturday_4'].values[:24], archetypes_schedules['Sunday_4'].values[:24]]
     else:
         pro = [np.zeros(24), np.zeros(24), np.zeros(24)]
 
     # read area per occupant
-    area_per_occupant = x['density'].values[:1][0]
+    area_per_occupant = archetypes_schedules['density'].values[:1][0]
 
     return occ, el, dhw, pro, month, area_per_occupant
 
 
 # read schedules and archetypal values from excel file
-def schedule_maker(region, dates, locator, list_uses):
+def schedule_maker(dates, locator, list_uses):
     """
     Reads schedules from the archetype schedule Excel file along with the corresponding internal loads and ventilation
     demands.
@@ -606,9 +607,9 @@ def schedule_maker(region, dates, locator, list_uses):
     """
 
     # get internal loads and indoor comfort from archetypes
-    archetypes_internal_loads = pd.read_excel(locator.get_archetypes_properties(region), 'INTERNAL_LOADS').set_index(
+    archetypes_internal_loads = pd.read_excel(locator.get_archetypes_properties(), 'INTERNAL_LOADS').set_index(
         'Code')
-    archetypes_indoor_comfort = pd.read_excel(locator.get_archetypes_properties(region), 'INDOOR_COMFORT').set_index(
+    archetypes_indoor_comfort = pd.read_excel(locator.get_archetypes_properties(), 'INDOOR_COMFORT').set_index(
         'Code')
 
     # create empty lists of archetypal schedules, occupant densities and each archetype's ventilation and internal loads
@@ -617,7 +618,7 @@ def schedule_maker(region, dates, locator, list_uses):
 
     for use in list_uses:
         # read from archetypes_schedules and properties
-        archetypes_schedules = pd.read_excel(locator.get_archetypes_schedules(region), use).T
+        archetypes_schedules = pd.read_excel(locator.get_archetypes_schedules(), use, index_col=0).T
 
         # read lists of every daily profile
         occ_schedules, el_schedules, dhw_schedules, pro_schedules, month_schedule, area_per_occupant = read_schedules(
@@ -663,19 +664,20 @@ def calc_average(last, current, share_of_use):
 def main(config):
     from cea.demand.building_properties import BuildingProperties
 
-    gv = cea.globalvar.GlobalVariables()
-    gv.config = config
+    weather_data = epwreader.epw_reader(config.weather)[['year']]
+    year = weather_data['year'][0]
+    dates = pd.date_range(str(year) + '/01/01', periods=HOURS_IN_YEAR, freq='H')
     locator = cea.inputlocator.InputLocator(scenario=config.scenario)
     config.demand.buildings = locator.get_zone_building_names()[0]
-    date = pd.date_range(gv.date_start, periods=8760, freq='H')
-    building_properties = BuildingProperties(locator, True, config.region, False)
+
+    building_properties = BuildingProperties(locator, True, False)
     bpr = building_properties[locator.get_zone_building_names()[0]]
     list_uses = ['OFFICE', 'INDUSTRIAL']
     bpr.occupancy = {'OFFICE': 0.5, 'INDUSTRIAL': 0.5}
     use_stochastic_occupancy = config.demand.use_stochastic_occupancy
 
     # calculate schedules
-    archetype_schedules, archetype_values = schedule_maker(config.region, date, locator, list_uses)
+    archetype_schedules, archetype_values = schedule_maker(dates, locator, list_uses)
     return calc_schedules(list_uses, archetype_schedules, bpr, archetype_values, use_stochastic_occupancy)
 
 

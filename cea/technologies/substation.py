@@ -11,6 +11,7 @@ import scipy
 from numba import jit
 import cea.config
 from cea.technologies.constants import DT_HEAT, DT_COOL, U_COOL, U_HEAT
+from cea.constants import HOURS_IN_YEAR
 
 __author__ = "Jimeno A. Fonseca"
 __copyright__ = "Copyright 2017, Architecture and Building Systems - ETH Zurich"
@@ -43,35 +44,35 @@ def substation_main(locator, total_demand, building_names, heating_configuration
 
     t0 = time.clock()
     # generate empty vectors
-    # Ths_ahu_supply = np.zeros(8760)
-    # Ths_aru_supply = np.zeros(8760)
-    # Ths_shu_supply = np.zeros(8760)
-    # Ths_ahu_return = np.zeros(8760)
-    # Ths_aru_return = np.zeros(8760)
-    # Ths_shu_return = np.zeros(8760)
-    # Tww_supply = np.zeros(8760)
-    # Tww_return = np.zeros(8760)
-    T_cooling_supply_initial = np.zeros(8760) + 1E6
-    T_cooling_return_initial = np.zeros(8760) - 1E6
-    # Tcdata_sys_supply = np.zeros(8760) + 1E6
-    # Tcref_supply = np.zeros(8760) + 1E6
-    # Tcs_ahu_supply = np.zeros(8760) + 1E6
-    # Tcs_aru_supply = np.zeros(8760) + 1E6
-    # Tcs_scu_supply = np.zeros(8760) + 1E6
-    # Tcdata_sys_return = np.zeros(8760) - 1E6
-    # Tcref_return = np.zeros(8760) - 1E6
-    # Tcs_ahu_return = np.zeros(8760) - 1E6
-    # Tcs_aru_return = np.zeros(8760) - 1E6
-    # Tcs_scu_return = np.zeros(8760) - 1E6
+    # Ths_ahu_supply = np.zeros(HOURS_IN_YEAR)
+    # Ths_aru_supply = np.zeros(HOURS_IN_YEAR)
+    # Ths_shu_supply = np.zeros(HOURS_IN_YEAR)
+    # Ths_ahu_return = np.zeros(HOURS_IN_YEAR)
+    # Ths_aru_return = np.zeros(HOURS_IN_YEAR)
+    # Ths_shu_return = np.zeros(HOURS_IN_YEAR)
+    # Tww_supply = np.zeros(HOURS_IN_YEAR)
+    # Tww_return = np.zeros(HOURS_IN_YEAR)
+    T_cooling_supply_initial = np.zeros(HOURS_IN_YEAR) + 1E6
+    T_cooling_return_initial = np.zeros(HOURS_IN_YEAR) - 1E6
+    # Tcdata_sys_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+    # Tcref_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+    # Tcs_ahu_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+    # Tcs_aru_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+    # Tcs_scu_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+    # Tcdata_sys_return = np.zeros(HOURS_IN_YEAR) - 1E6
+    # Tcref_return = np.zeros(HOURS_IN_YEAR) - 1E6
+    # Tcs_ahu_return = np.zeros(HOURS_IN_YEAR) - 1E6
+    # Tcs_aru_return = np.zeros(HOURS_IN_YEAR) - 1E6
+    # Tcs_scu_return = np.zeros(HOURS_IN_YEAR) - 1E6
 
     # Calculate the plant supply temperautres according to all building demands
     # hence, the lowest temperature for DC, and the highest temperature for DH
     buildings_dict = {}
     cooling_system_temperatures_dict = {}
     heating_system_temperatures_dict = {}
-    T_DHN_supply = np.zeros(8760)
-    T_DCN_supply_to_cs_ref = np.zeros(8760) + 1E6
-    T_DCN_supply_to_cs_ref_data = np.zeros(8760) + 1E6
+    T_DHN_supply = np.zeros(HOURS_IN_YEAR)
+    T_DCN_supply_to_cs_ref = np.zeros(HOURS_IN_YEAR) + 1E6
+    T_DCN_supply_to_cs_ref_data = np.zeros(HOURS_IN_YEAR) + 1E6
     for name in building_names:
         buildings_dict[name] = pd.read_csv(locator.get_demand_results_folder() + '//' + name + ".csv",
                                            usecols=['Name', 'Ths_sys_sup_ahu_C', 'Ths_sys_sup_aru_C', 'Ths_sys_sup_shu_C',
@@ -142,8 +143,8 @@ def substation_main(locator, total_demand, building_names, heating_configuration
             T_hs_intermediate_2 = np.vectorize(calc_DH_return)(Ths_ahu_return, Ths_aru_return)
             Ths_return = np.vectorize(calc_DH_return)(T_hs_intermediate_2, Ths_shu_return)
         elif heating_configuration == 0: # when there is no heating requirement from the centralized plant
-            Ths_supply = np.zeros(8760)
-            Ths_return = np.zeros(8760)
+            Ths_supply = np.zeros(HOURS_IN_YEAR)
+            Ths_return = np.zeros(HOURS_IN_YEAR)
         else:
             raise ValueError('wrong heating configuration specified in substation_main!')
 
@@ -184,8 +185,8 @@ def substation_main(locator, total_demand, building_names, heating_configuration
             T_space_cooling_intermediate_2 = np.vectorize(calc_DC_return)(Tcs_ahu_return, Tcs_aru_return)
             Tcs_return = np.vectorize(calc_DC_return)(T_space_cooling_intermediate_2, Tcs_scu_return)
         elif cooling_configuration == 0:
-            Tcs_supply = np.zeros(8760) + 1E6
-            Tcs_return = np.zeros(8760) - 1E6
+            Tcs_supply = np.zeros(HOURS_IN_YEAR) + 1E6
+            Tcs_return = np.zeros(HOURS_IN_YEAR) - 1E6
         else:
             raise ValueError('wrong heating configuration specified in substation_main!')
 
@@ -278,10 +279,10 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
     # fixme: this is the wrong aggregation! the mcp should be recalculated according to the updated Tsup/re, and this does not aggregate the domestic hot water
 
     if hs_configuration == 0:
-        t_DH_return_hs = np.zeros(8760)
-        mcp_DH_hs = np.zeros(8760)
+        t_DH_return_hs = np.zeros(HOURS_IN_YEAR)
+        mcp_DH_hs = np.zeros(HOURS_IN_YEAR)
         A_hex_hs = 0
-        Qhs_sys_W = np.zeros(8760)
+        Qhs_sys_W = np.zeros(HOURS_IN_YEAR)
     else:
         thi = DHN_supply['T_DH_supply_C'] + 273  # In k
         Qhs_sys_W = Qhs_sys_kWh_dict[hs_configuration] * 1000  # in W
@@ -298,10 +299,10 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
             t_DH_return_hs, mcp_DH_hs, A_hex_hs = \
                 calc_substation_heating(Qhs_sys_W, thi, tco, tci, cc, cc_0, Qnom_W, thi_0, tci_0, tco_0)
         else:
-            t_DH_return_hs = np.zeros(8760)
-            mcp_DH_hs = np.zeros(8760)
+            t_DH_return_hs = np.zeros(HOURS_IN_YEAR)
+            mcp_DH_hs = np.zeros(HOURS_IN_YEAR)
             A_hex_hs = 0
-            tci = np.zeros(8760) + 273  # in K
+            tci = np.zeros(HOURS_IN_YEAR) + 273  # in K
 
     # HEX sizing for domestic hot water, calculate t_DH_return_ww, mcp_DH_ww
     Qww_sys_W = building.Qww_sys_kWh.values * 1000  # in W
@@ -319,10 +320,10 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
         t_DH_return_ww, mcp_DH_ww, A_hex_ww = \
             calc_substation_heating(Qww_sys_W, thi, tco, tci, cc, cc_0, Qnom_W, thi_0, tci_0, tco_0)
     else:
-        t_DH_return_ww = np.zeros(8760)
+        t_DH_return_ww = np.zeros(HOURS_IN_YEAR)
         A_hex_ww = 0
-        mcp_DH_ww = np.zeros(8760)
-        tci = np.zeros(8760) + 273  # in K
+        mcp_DH_ww = np.zeros(HOURS_IN_YEAR)
+        tci = np.zeros(HOURS_IN_YEAR) + 273  # in K
 
 
     # calculate mix temperature of return DH
@@ -350,7 +351,7 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
         t_DC_return_cs = tci
         mcp_DC_cs = 0
         A_hex_cs = 0
-        Qcs_sys_W = np.zeros(8760)
+        Qcs_sys_W = np.zeros(HOURS_IN_YEAR)
     else:
         tci = DCN_supply['T_DC_supply_to_cs_ref_data_C'] + 273 # fixme: change according to cs_ref or ce_ref_data
         Qcs_sys_W = abs(Qcs_sys_kWh_dict[cs_configuration]) * 1000  # in W
@@ -378,7 +379,7 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
         t_DC_return_ref = tci
         mcp_DC_ref = 0
         A_hex_ref = 0
-        Qcre_sys_W = np.zeros(8760)
+        Qcre_sys_W = np.zeros(HOURS_IN_YEAR)
 
     else:
         Qcre_sys_W = abs(building.Qcre_sys_kWh.values) * 1000  # in W
@@ -404,7 +405,7 @@ def substation_model(building, DHN_supply, DCN_supply, cs_temperatures, hs_tempe
         t_DC_return_data = tci
         mcp_DC_data = 0
         A_hex_data = 0
-        Qcdata_sys_W = np.zeros(8760)
+        Qcdata_sys_W = np.zeros(HOURS_IN_YEAR)
 
     else:
         Qcdata_sys_W = (abs(building.Qcdata_sys_kWh.values) * 1000)
@@ -514,7 +515,7 @@ def calc_substation_cooling(Q, thi, tho, tci, ch, ch_0, Qnom, thi_0, tci_0, tho_
     # nominal conditions network side
     cc_0 = ch_0 * (thi_0 - tho_0) / ((thi_0 - tci_0) * 0.9)
     tco_0 = Qnom / cc_0 + tci_0
-    dTm_0 = calc_dTm_HEX(thi_0, tho_0, tci_0, tco_0, 'cool')
+    dTm_0 = calc_dTm_HEX(thi_0, tho_0, tci_0, tco_0)
     # Area heat exchange and UA_heating
     Area_HEX_cooling, UA_cooling = calc_area_HEX(Qnom, dTm_0, U_COOL)
     tco, cc = np.vectorize(calc_HEX_cooling)(Q, UA_cooling, thi, tho, tci, ch)
@@ -549,7 +550,7 @@ def calc_substation_heating(Q, thi, tco, tci, cc, cc_0, Qnom, thi_0, tci_0, tco_
     # nominal conditions network side
     ch_0 = cc_0 * (tco_0 - tci_0) / ((thi_0 - tci_0) * 0.9)
     tho_0 = thi_0 - Qnom / ch_0
-    dTm_0 = calc_dTm_HEX(thi_0, tho_0, tci_0, tco_0, 'heat')
+    dTm_0 = calc_dTm_HEX(thi_0, tho_0, tci_0, tco_0)
     # Area heat excahnge and UA_heating
     Area_HEX_heating, UA_heating = calc_area_HEX(Qnom, dTm_0, U_HEAT)
     tho, ch = np.vectorize(calc_HEX_heating)(Q, UA_heating, thi, tco, tci, cc)
@@ -746,7 +747,7 @@ def calc_HEX_heating(Q_heating_W, UA, thi_K, tco_K, tci_K, cc_kWperK):
     return np.float(tho_C), np.float(ch_kWperK)
 
 
-def calc_dTm_HEX(thi, tho, tci, tco, flag):
+def calc_dTm_HEX(thi, tho, tci, tco):
     '''
     This function estimates the logarithmic temperature difference between two streams
 
@@ -754,19 +755,15 @@ def calc_dTm_HEX(thi, tho, tci, tco, flag):
     :param tho: out temperature hot stream
     :param tci: in temperature cold stream
     :param tco: out temperature cold stream
-    :param flag: heat: when using for the heating case, 'cool' otherwise
     :return:
         - dtm = logaritimic temperature difference
 
     '''
     dT1 = thi - tco
-    dT2 = tho - tci
+    dT2 = tho - tci if not isclose(tho, tci) else 0.0001  # to avoid errors with temperature changes < 0.001
 
     try:
-        if flag == 'heat':
-            dTm = (dT1 - dT2) / scipy.log(dT1 / dT2)
-        else:
-            dTm = (dT2 - dT1) / scipy.log(dT2 / dT1)
+        dTm = (dT1 - dT2) / scipy.log(dT1 / dT2)
     except ZeroDivisionError:
         raise Exception(thi, tco, tho, tci, "Check the emission_system database, there might be a problem with the selection of nominal temperatures")
 

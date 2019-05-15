@@ -100,7 +100,8 @@ def calc_heating_cooling_loads(bpr, tsd, t):
 
             rc_model_temperatures = calc_cool_loads_3for2(bpr, t, tsd)
 
-        elif control_heating_cooling_systems.has_ceiling_cooling_system(bpr):
+        elif control_heating_cooling_systems.has_ceiling_cooling_system(bpr) or \
+                control_heating_cooling_systems.has_floor_cooling_system(bpr):
 
             rc_model_temperatures = calc_cool_loads_radiator(bpr, t, tsd)
 
@@ -258,6 +259,7 @@ def calc_heat_loads_central_ac(bpr, t, tsd):
     t_ve_mech_after_hex = tsd['theta_ve_mech'][t]
     x_ve_mech = tsd['x_ve_mech'][t]
     t_int_prev = tsd['T_int'][t - 1]
+    ta_hs_set = tsd['ta_hs_set'][t]
 
     # (1) The RC-model gives the sensible energy demand for the hour
     # calc rc model sensible demand
@@ -266,7 +268,7 @@ def calc_heat_loads_central_ac(bpr, t, tsd):
     # (2) The load of the central AC unit is determined by the air mass flows and fixed supply temperature
     # calc central ac unit load
     system_loads_ahu = airconditioning_model.central_air_handling_unit_heating(m_ve_mech, t_ve_mech_after_hex,
-                                                                               x_ve_mech, bpr)
+                                                                               x_ve_mech, ta_hs_set, t_int_prev, bpr)
     qh_sen_central_ac_load = system_loads_ahu['qh_sen_ahu']
 
     # (3) Check demand vs. central AC heating load

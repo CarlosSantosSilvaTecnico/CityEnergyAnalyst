@@ -643,7 +643,7 @@ def _calc_rc_model_temperatures(Eaf, Elf, Epro, Htr_op, Htr_w, I_sol, Qs, T_ext,
     f_sm = calc_f_sm(a_t=a_t, a_m=a_m, a_w=a_w)
     phi_i_l = calc_phi_i_l(Elf=Elf)
     phi_i_a = calc_phi_i_a(Eaf=Eaf, Epro=Epro) # include processes
-    phi_i_p = calc_phi_i_p(Qs=Qs) # , people=people)
+    phi_i_p = calc_phi_i_p(Qs=Qs)
     h_1 = calc_h_1(h_ea=h_ea, h_ac=h_ac)
     phi_a = calc_phi_a(phi_hc_cv, phi_i_l, phi_i_a, phi_i_p, I_sol)
     phi_m = calc_phi_m(phi_hc_r, phi_i_l, phi_i_a, phi_i_p, I_sol, f_im, f_sm)
@@ -853,9 +853,8 @@ def has_sensible_heating_demand(t_int_0, tsd, t):
 
 f_hc_cv_heating_system = {'T1': 1, 'T2': 1, 'T3': 1, 'T4': 0.5}
 # T1 = radiator, T2 = radiator, T3 = AC, T4 = floor heating #TODO: add heating ceiling
-f_hc_cv_cooling_system = {'T1': 0.5, 'T2': 1, 'T3': 1, 'T4': 1} #FIXME check 3for2
-# T1 = ceiling cooling, T2 mini-split AC, T3 = AC #TODO: add floor cooling
-
+f_hc_cv_cooling_system = {'T1': 0.5, 'T2': 1, 'T3': 1, 'T4': 1, 'T5': 0.1} #FIXME check 3for2
+# T1 = ceiling cooling, T2 mini-split AC, T3 = AC, T4 = 3for2, T5 = floor cooling
 
 def lookup_f_hc_cv_heating(bpr):
 

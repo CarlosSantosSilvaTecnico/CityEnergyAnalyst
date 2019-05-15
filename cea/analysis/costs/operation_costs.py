@@ -22,15 +22,14 @@ __status__ = "Production"
 def operation_costs(locator, config):
 
     # get local variables
-    region = config.region
     demand = pd.read_csv(locator.get_total_demand())
     supply_systems = gpdf.from_file(locator.get_building_supply()).drop('geometry', axis=1)
-    data_LCI = locator.get_life_cycle_inventory_supply_systems(region)
-    factors_heating = pd.read_excel(data_LCI, sheetname='HEATING')
-    factors_dhw = pd.read_excel(data_LCI, sheetname='DHW')
-    factors_cooling = pd.read_excel(data_LCI, sheetname='COOLING')
-    factors_electricity = pd.read_excel(data_LCI, sheetname='ELECTRICITY')
-    factors_resources = pd.read_excel(data_LCI, sheetname='RESOURCES')
+    data_LCI = locator.get_life_cycle_inventory_supply_systems()
+    factors_heating = pd.read_excel(data_LCI, sheet_name='HEATING')
+    factors_dhw = pd.read_excel(data_LCI, sheet_name='DHW')
+    factors_cooling = pd.read_excel(data_LCI, sheet_name='COOLING')
+    factors_electricity = pd.read_excel(data_LCI, sheet_name='ELECTRICITY')
+    factors_resources = pd.read_excel(data_LCI, sheet_name='RESOURCES')
 
     # local variables
     # calculate the total operational non-renewable primary energy demand and CO2 emissions
@@ -53,10 +52,15 @@ def operation_costs(locator, config):
     fields_to_plot = []
     heating_services = ['DH_hs', 'OIL_hs', 'NG_hs', 'WOOD_hs', 'COAL_hs', 'SOLAR_hs']
     for service in heating_services:
-        fields_to_plot.extend([service+'_cost_yr', service+'_cost_m2yr'])
-        # calculate the total and relative costs
-        heating[service+'_cost_yr'] = heating[service+'_MWhyr'] * heating['costs_kWh']* 1000
-        heating[service+'_cost_m2yr'] =  heating[service+'_cost_yr']/heating['NFA_m2']
+        try:
+            fields_to_plot.extend([service+'_cost_yr', service+'_cost_m2yr'])
+            # calculate the total and relative costs
+            heating[service+'_cost_yr'] = heating[service+'_MWhyr'] * heating['costs_kWh']* 1000
+            heating[service+'_cost_m2yr'] =  heating[service+'_cost_yr']/heating['NFA_m2']
+        except KeyError:
+            print(heating)
+            print(list(heating.columns))
+            raise
 
     # for cooling services
     dhw_services = ['DH_ww', 'OIL_ww', 'NG_ww', 'WOOD_ww', 'COAL_ww', 'SOLAR_ww']

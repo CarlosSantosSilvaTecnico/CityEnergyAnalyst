@@ -1,7 +1,5 @@
 """
-=====================
 Electricity Operation
-=====================
 
 All buildings are connected to the grid which completely cover their needs
 (as the buying / selling electricity prices are the same and are independent 
@@ -15,7 +13,7 @@ import pandas as pd
 from cea.optimization.prices import Prices as Prices
 from cea.optimization.preprocessing import decentralized_buildings_heating
 from cea.optimization.preprocessing import decentralized_buildings_cooling
-from cea.optimization.lca_calculations import lca_calculations
+from cea.optimization.lca_calculations import LcaCalculations
 
 
 
@@ -31,7 +29,7 @@ def disconnected_building_main(locator, building_names, config, prices, lca):
     :return: elecCosts, elecCO2, elecPrim
     :rtype: tuple
     """
-    controls = pd.read_excel(locator.get_archetypes_system_controls(config.region))
+    controls = pd.read_excel(locator.get_archetypes_system_controls())
     if controls['has-cooling-season'].item() or controls['has-heating-season'].item():
         if controls['has-cooling-season'].item():
             decentralized_buildings_cooling.disconnected_buildings_cooling_main(locator, building_names, config, prices, lca)
@@ -48,7 +46,7 @@ def main(config):
     total_demand = pd.read_csv(locator.get_total_demand())
     building_names = total_demand.Name.values
     prices = Prices(locator, config)
-    lca = lca_calculations(locator, config)
+    lca = LcaCalculations(locator, config.detailed_electricity_pricing)
 
     disconnected_building_main(locator=locator, building_names=building_names, config=config, prices=prices, lca=lca)
 
