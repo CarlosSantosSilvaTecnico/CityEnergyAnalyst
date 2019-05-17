@@ -47,7 +47,7 @@ Follow the next steps:
 
 #. Go to the folder where you have saved YourProject
 #. Open CEA from your Desktop.
-#. Go to inputs/Occupancy and edit it accordingly to your case study and Save the changes.
+#. Go to inputs/Age and edit it accordingly to your case study and Save the changes.
 #. Go to inputs/Occupancy and edit it accordingly to your case study and Save the changes.
 
 The occupancy and Age files are located in YourProject/YourScenario/inputs/building/properties/ in case you would like to edit these files with a .dBf. reader
